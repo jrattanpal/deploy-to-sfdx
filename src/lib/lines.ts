@@ -1,16 +1,11 @@
 import * as logger from 'heroku-logger';
 import * as stripcolor from 'strip-color';
-import * as util from 'util';
 
+import { deployRequest, clientDataStructure, commandSummary, sfdxDisplayResult, HerokuResult } from './types';
 import * as utilities from './utilities';
-import { redis } from './redisNormal';
+import { cdsPublish, redis } from './redisNormal';
 import * as argStripper from './argStripper';
-
-import { deployRequest, clientDataStructure, commandSummary } from './types';
-
-const exec = util.promisify(require('child_process').exec);
-
-const ex = 'deployMsg';
+import { exec } from '../lib/execProm';
 
 const lines = function(
   msgJSON: deployRequest,
@@ -70,14 +65,8 @@ const lines = function(
         summary = commandSummary.PACKAGE;
       } else if (localLine.includes('sfdx force:mdapi:deploy')) {
         summary = commandSummary.DEPLOY;
-      } else {
-        logger.info('unhandled command will show up directly in the UI', {
-          command: localLine,
-          repo: `${msgJSON.username}/${msgJSON.repo}`
-        });
-      }
-      // heroku deployer support  // if it's heroku:repo:deploy
-      if (localLine.includes('sfdx shane:heroku:repo:deploy')) {
+      } else if (localLine.includes('sfdx shane:heroku:repo:deploy')) {
+        summary = commandSummary.HEROKU_DEPLOY;
         if (!process.env.HEROKU_API_KEY) {
           // check that heroku API key is defined in process.env
           logger.error(
@@ -87,26 +76,11 @@ const lines = function(
             }
           );
         }
-        summary = commandSummary.HEROKU_DEPLOY;
-        // if there's an org, align the expiration, otherwise default it to [?something]
-        // logger.debug(`heroku app deploy: ${localLine}`);
-        // visitor.event('sfdx event', 'heroku app deploy', this.msgJSON.template).send();
-        // push an object to the herokuDeletes queue
-
-        const days =
-          parseInt(utilities.getArg(localLine, '-d'), 10) ||
-          parseInt(utilities.getArg(localLine, '--days'), 10) ||
-          7;
-
-        const herokuDeleteMessage = {
-          herokuDelete: true,
-          appName:
-            utilities.getArg(localLine, '-n') ||
-            utilities.getArg(localLine, '--name'),
-          expiration: Date.now() + days * 24 * 60 * 60 * 1000
-        };
-
-        redis.rpush('herokuDeletes', JSON.stringify(herokuDeleteMessage));
+      } else {
+        logger.info('unhandled command will show up directly in the UI', {
+          command: localLine,
+          repo: `${msgJSON.username}/${msgJSON.repo}`
+        });
       }
 
       // the actual work and error handling
@@ -117,7 +91,7 @@ const lines = function(
       logger.debug(`running line-- ${localLine}`);
 
       try {
-        lineResult = await exec(localLine, { cwd: `tmp/${msgJSON.deployId}` });
+        lineResult = await exec(localLine, { cwd: `tmp/${msgJSON.deployId}`, shell: '/bin/bash' });
                 
         if (localLine.includes('--json')) {
           let response = JSON.parse(stripcolor(lineResult.stdout));
@@ -137,7 +111,6 @@ const lines = function(
               }: ${response.message}`, response
             );
           } else {
-            logger.debug('line returned status 0');
             if (summary === commandSummary.OPEN) {
               // temporary
               response = utilities.urlFix(response);
@@ -155,6 +128,14 @@ const lines = function(
               shortForm = `set password to ${
                 response.result.password
               } for user ${response.result.username || output.mainUser.username}`;
+            } else if (summary === commandSummary.HEROKU_DEPLOY) {
+              const HR :HerokuResult = {
+                appName: response.result.app.name,
+                dashboardUrl: `https://dashboard.heroku.com/apps/${response.result.app.name}`,
+                openUrl: response.result.resolved_success_url
+              }
+              shortForm = `created heroku app with name ${response.result.app.name}`;
+              output.herokuResults.push(HR);              
             } else if (summary === commandSummary.USER_CREATE) {
               output.additionalUsers.push({
                 username: response.result.fields.username
@@ -180,7 +161,7 @@ const lines = function(
         }        
 
         // finally, emit the entire new data structure back to the web server to forward to the client after each line
-        redisPub.publish(ex, JSON.stringify(output));
+        cdsPublish(output);
       } catch (e) {
         logger.error('a very serious error occurred on this line...in the catch section', e);
         // a more serious error...tell the client
@@ -191,7 +172,7 @@ const lines = function(
           raw: e
         });
 
-        redisPub.publish(ex, JSON.stringify(output));
+        cdsPublish(output);
 
         // and throw so the requester can do the rest of logging to heroku logs and GA
         throw new Error(e);
@@ -201,8 +182,12 @@ const lines = function(
     // we're done here
     output.complete = true;
     output.completeTimestamp = new Date();
+
+    // used by pools, may be otherwise handy
+    output.instanceUrl = await getInstanceUrl( `tmp/${msgJSON.deployId}`, output.mainUser.username);
+    
     await Promise.all([
-      redisPub.publish(ex, JSON.stringify(output)),
+      cdsPublish(output),
       exec('sfdx force:auth:logout -p', { cwd: `tmp/${msgJSON.deployId}` })
     ]);
     return output;
@@ -210,3 +195,10 @@ const lines = function(
 };
 
 export = lines;
+
+
+const getInstanceUrl = async (path: string, username: string) => {
+  const displayResults = await exec(`sfdx force:org:display -u ${username} --json`, { cwd: path });
+  const displayResultsJSON = <sfdxDisplayResult> JSON.parse(stripcolor(displayResults.stdout)).result;
+  return displayResultsJSON.instanceUrl;
+}

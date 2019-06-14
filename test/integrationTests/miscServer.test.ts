@@ -4,20 +4,11 @@ import { getTestURL } from '../helpers/testingUtils';
 const testURL = getTestURL();
 
 describe('misc server tests', () => {
-  test('returns the home page empty message', async () => {
-    const response = await request.get({
-      url: `${testURL}/`,
-      json: true
-    });
-    expect(response.message).toBe(
-      'There is nothing at /.  See the docs for valid paths.'
-    );
-  });
-
+  
   test('displays pools', async () => {
     const response = await request.get({
       url: `${testURL}/pools`,
-      json: true
+      json: true  
     });
     // expect(response.statusCode).toBe('200');
     expect(typeof response).toBe("object");
@@ -39,5 +30,47 @@ describe('misc server tests', () => {
     });
     expect(response.statusCode).toBe(200);
   });
+
+  test('returns the home page', async () => {
+    const response = await request.get({
+      url: `${testURL}/`,
+      resolveWithFullResponse: true
+    });
+    expect(response.statusCode).toBe(200);
+  });
+
+  test('returns the delete confirm page', async () => {
+    const response = await request.get({
+      url: `${testURL}/deleteConfirm`,
+      resolveWithFullResponse: true
+    });
+    expect(response.statusCode).toBe(200);
+  });
+
+  test('returns the error  page', async () => {
+    const response = await request.get({
+      url: `${testURL}/error`,
+      resolveWithFullResponse: true
+    });
+    expect(response.statusCode).toBe(200);
+  });
+
+  test('returns the deploying page', async () => {
+    const response = await request.get({
+      url: `${testURL}/deploying/deployer/test-123456`,
+      resolveWithFullResponse: true
+    });
+    expect(response.statusCode).toBe(200);
+  });
+
+  test('returns the trial deploying page', async () => {
+    const response = await request.get({
+      url: `${testURL}/deploying/trial/test-123455`,
+      resolveWithFullResponse: true
+    });
+    expect(response.statusCode).toBe(200);
+  });
+
+
 });
 

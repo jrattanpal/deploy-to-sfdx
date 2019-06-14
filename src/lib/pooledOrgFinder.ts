@@ -1,7 +1,4 @@
-import { exec } from 'child_process';
 import * as logger from 'heroku-logger';
-import * as delay from 'delay';
-import * as util from 'util';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as stripcolor from 'strip-color';
@@ -11,73 +8,30 @@ import { getPooledOrg, cdsPublish } from './redisNormal';
 import { getKeypath } from './hubAuth';
 import * as argStripper from './argStripper';
 import { timesToGA } from './timeTracking';
+import { execProm } from '../lib/execProm';
 
-import { deployRequest, clientDataStructure } from './types';
-
-const execProm = util.promisify(exec);
-const maxRetries = 300;
+import { deployRequest } from './types';
 
 const pooledOrgFinder = async function(deployReq: deployRequest) {
 	
 	try {
-		const msgJSON = await getPooledOrg(await utilities.getKey(deployReq), true);
+		let cds = await getPooledOrg(await utilities.getKey(deployReq), true);
+		cds = {...cds, buildStartTime: new Date(), deployId: deployReq.deployId, browserStartTime: deployReq.createdTimestamp || new Date() };
 
-		const cds: clientDataStructure = {
-			deployId: deployReq.deployId,
-			browserStartTime: deployReq.createdTimestamp || new Date(),
-			buildStartTime: new Date(),
-			complete: true,
-			commandResults: [],
-			errors: []
-		};
-
-		const uniquePath = path.join(__dirname, '../tmp/pools', msgJSON.displayResults.id);
-
+		const uniquePath = path.join(__dirname, '../tmp/pools', cds.orgId);
 		fs.ensureDirSync(uniquePath);
 
-		let keepTrying = true;
-		let authD = false;
-		let tries = 0;
-
-		while (!authD && keepTrying && tries < maxRetries) {
-			// let's auth to the org from the pool
-			tries++;
-			try {
-				const loginResult = await execProm(
-					`sfdx force:auth:jwt:grant --json --clientid ${process.env.CONSUMERKEY} --username ${
-						msgJSON.displayResults.username
-					} --jwtkeyfile ${await getKeypath()} --instanceurl https://test.salesforce.com -s`,
-					{ cwd: uniquePath }
-				);
-
-				logger.debug(`auth completed ${loginResult.stdout}`);
-				authD = true;
-				keepTrying = false;
-			} catch (err) {
-				const parsedOut = JSON.parse(stripcolor(err.stdout));
-				if (parsedOut.message.includes('This org appears to have a problem with its OAuth configuration')) {
-					keepTrying = true;
-				} else if (parsedOut.message.includes('This command requires a scratch org username set either with a flag or by default in the config.')) {
-					keepTrying = true;
-				} else {
-					logger.error(parsedOut);
-					keepTrying = false;
-				}
-				await delay.default(1000);
-			}
-
-
-		}
+		await execProm(
+			// `sfdx force:auth:jwt:grant --json --clientid ${process.env.CONSUMERKEY} --username ${ cds.mainUser.username } --jwtkeyfile ${keypath} --instanceurl ${cds.instanceUrl || 'https://test.salesforce.com'} -s`,
+			`sfdx force:auth:jwt:grant --clientid ${process.env.CONSUMERKEY} --username ${ cds.mainUser.username } --jwtkeyfile ${await getKeypath()} --instanceurl https://test.salesforce.com -s`,
+			{ cwd: uniquePath }
+		);
 		
-		if (!authD){
-			throw new Error('unable to get authenticated to the org from the pool');
-		}
-
 		// we may need to put the user's email on it
 		if (deployReq.email) {
 			logger.debug(`changing email to ${deployReq.email}`);
-			const emailResult = await execProm(
-				`sfdx force:data:record:update -s User -w "username='${msgJSON.displayResults.username}'" -v "email='${
+			await execProm(
+				`sfdx force:data:record:update -s User -w "username='${cds.mainUser.username}'" -v "email='${
 					deployReq.email
 				}'"`,
 				{ cwd: uniquePath }
@@ -86,8 +40,8 @@ const pooledOrgFinder = async function(deployReq: deployRequest) {
 
 		let password: string;
 
-		if (msgJSON.passwordCommand) {
-			const stripped = argStripper(msgJSON.passwordCommand, '--json', true);
+		if (cds.poolLines.passwordLine) {
+			const stripped = argStripper(cds.poolLines.passwordLine, '--json', true);
 			const passwordSetResult = await execProm(`${stripped} --json`, {
 				cwd: uniquePath
 			});
@@ -99,16 +53,15 @@ const pooledOrgFinder = async function(deployReq: deployRequest) {
 			}
 		}
 
-		const openResult = await execProm(`${msgJSON.openCommand} --json -r`, {
+		const openResult = await execProm(`${cds.poolLines.openLine} --json -r`, {
 			cwd: uniquePath
 		});
 		const openOutput = JSON.parse(stripcolor(openResult.stdout));
 
 		cds.openTimestamp = new Date();
 		cds.completeTimestamp = new Date();
-		cds.orgId = msgJSON.displayResults.id;
 		cds.mainUser = {
-			username: msgJSON.displayResults.username,
+			...(cds.mainUser),
 			loginUrl: utilities.urlFix(openOutput).result.url,
 			password
 		};
