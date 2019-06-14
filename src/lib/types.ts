@@ -24,7 +24,6 @@ export interface deployRequest {
   firstname?: string;
   lastname?: string;
   visitor?: ua.Visitor;
-  delete?: boolean;
 }
 
 // tells how a pool should be built.  Used in an array from a url like POOLCONFIG_URL=https://deployer-pools.herokuapp.com/pools-dev
@@ -35,18 +34,7 @@ export interface poolConfig {
   quantity: number;
 }
 
-// an org that's already built
-export interface poolOrg {
-  createdDate: Date;
-  repo: string;
-  githubUsername: string;
-  openCommand: string;
-  passwordCommand?: string;
-  branch?: string;
-  displayResults?: sfdxDisplayResult;
-}
-
-interface sfdxDisplayResult {
+export interface sfdxDisplayResult {
   username: string;
   id: string;
   instanceUrl?: string;
@@ -77,8 +65,11 @@ export interface clientDataStructure {
   openTimestamp?: Date; // when the open button became visible, even if more scripts were still running
   buildStartTime?: Date;
 
-  orgId?: string;
+  lineCount?: Number; // how many lines need to run...used for status bar
 
+  orgId?: string;
+  instanceUrl?: string;
+  
   mainUser?: {
     username: string;
     loginUrl: string;
@@ -88,6 +79,14 @@ export interface clientDataStructure {
   additionalUsers?: additionalUser[];
   errors: clientError[];
   commandResults: clientResult[];
+  herokuResults?: HerokuResult[];
+  poolLines?: lineParserResult;
+}
+
+export interface HerokuResult {
+  appName: string;
+  dashboardUrl: string;
+  openUrl: string;
 }
 
 interface clientError {
@@ -130,8 +129,3 @@ export interface herokuDyno {
   id: string;
   command: string;
 }
-
-export interface NightmarePage {
-  url ?: string;
-}
-

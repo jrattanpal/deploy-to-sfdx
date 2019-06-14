@@ -30,7 +30,6 @@ const server = app.listen(port, () => {
 const wss = new WebSocket.Server({ server, clientTracking: true });
 
 app.use(favicon(path.join(__dirname, 'assets/favicons', 'favicon.ico')));
-// app.use('/scripts', express.static(`${__dirname}/scripts`));
 app.use(express.static('built/assets'));
 
 app.use(
@@ -40,9 +39,6 @@ app.use(
 );
 
 app.use(bodyParser.json());
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '/views'));
-// app.use(cookieParser());
 
 app.post('/trial', wrapAsync(async (req, res, next) => {
 
@@ -63,21 +59,16 @@ app.post('/trial', wrapAsync(async (req, res, next) => {
 
 app.post('/delete', wrapAsync(async (req, res, next) => {
   await deleteOrg(req.body.username);
-  utilities.runHerokuBuilder();
   res.status(302).send('/deleteConfirm');
 }));
 
-app.get('/deleteConfirm', (req, res, next) =>
-  res.render('pages/deleteConfirm')
-);
+
 
 app.get('/launch', wrapAsync(async (req, res, next) => {  
 
   // allow repos to require the email parameter
   if (req.query.email === 'required') {
-    return res.render('pages/userinfo', {
-      template: req.query.template
-    });
+    return res.redirect(`/userinfo?template=${req.query.template}`);
   }
 
   const message: deployRequest = msgBuilder(req);
@@ -93,38 +84,14 @@ app.get('/launch', wrapAsync(async (req, res, next) => {
  
 }));
 
-app.get('/deploying/:format/:deployId', (req, res, next) => {
-  if (req.params.format === 'deployer') {
-    res.render('pages/messages', {
-      deployId: req.params.deployId.trim()
-    });
-  } else if (req.params.format === 'trial') {
-    res.render('pages/trialLoading', {
-      deployId: req.params.deployId.trim()
-    });
-  }
-});
-
-app.get('/userinfo', (req, res, next) => {
-  res.render('pages/userinfo', {
-    template: req.query.template
-  });
+app.get(['/', '/error', '/deploying/:format/:deployId', '/userinfo', '/testform', '/deleteConfirm'], (req, res, next) => {
+  res.sendFile('index.html', { root: path.join(__dirname, '../built/assets')});
 });
 
 app.get('/pools', wrapAsync(async (req, res, next) => {
   const keys = await getKeys();
   res.send(keys);
 }));
-
-app.get('/testform', (req, res, next) => {
-  res.render('pages/testForm');
-});
-
-app.get('/', (req, res, next) => {
-  res.json({
-    message: 'There is nothing at /.  See the docs for valid paths.'
-  });
-});
 
 app.get('*', (req, res, next) => {
   setImmediate(() => {
@@ -139,9 +106,7 @@ app.use((error, req, res, next) => {
   }
   logger.error(`request failed: ${req.url}`);
   logger.error(error);
-  return res.render('pages/error', {
-    customError: error
-  });
+  return res.redirect(`/error?msg=${error}`);
 });
 
 wss.on('connection', (ws: WebSocket, req) => {

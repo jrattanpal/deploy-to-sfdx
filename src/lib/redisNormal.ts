@@ -5,31 +5,95 @@ import * as ua from 'universal-analytics';
 import {
   DeleteRequest,
   deployRequest,
-  clientDataStructure,
-  poolOrg
+  clientDataStructure
 } from './types';
 
 import utilities = require('./utilities');
-import * as shellSanitize from './shellSanitize';
+import { shellSanitize } from './shellSanitize';
 
 const cdsExchange = 'deployMsg';
 const deployRequestExchange = 'deploys';
 const poolDeployExchange = 'poolDeploys';
+const orgDeleteExchange = 'orgDeletes';
+const herokuCDSExchange = 'herokuCDSs';
+
 // for accessing the redis directly.  Less favored
 const redis = new Redis(process.env.REDIS_URL);
 
 const deleteOrg = async (username: string) => {
+  logger.debug(`org delete requested for ${username}`);
   if (shellSanitize(username)){
     const msg: DeleteRequest = {
       username,
       delete: true
     };
-    await redis.publish(poolDeployExchange, JSON.stringify(msg));
+    await redis.rpush(orgDeleteExchange, JSON.stringify(msg));
   } else {
     throw new Error(`invalid username ${username}`);
   }
-
 };
+
+const putHerokuCDS = async (cds: clientDataStructure) => {
+  return await redis.lpush(herokuCDSExchange, JSON.stringify(cds));
+}
+
+const getHerokuCDSs = async () => {
+  const CDSs : clientDataStructure[] = (await redis.lrange(herokuCDSExchange, 0, -1))
+    .map( queueItem => JSON.parse(queueItem))
+  return CDSs;
+}
+
+const getAppNamesFromHerokuCDSs = async  (salesforceUsername : string, expecting:boolean = true) => {
+  // get all the CDSs
+  let herokuCDSs : clientDataStructure[] = (await redis.lrange(herokuCDSExchange, 0, -1))
+    .map( queueItem => JSON.parse(queueItem))
+  
+  if (herokuCDSs.length === 0) {
+    return [];
+  }
+  // find the matching username
+  const matchedCDSIndex = herokuCDSs  
+    .findIndex( (cds) => cds.mainUser.username === salesforceUsername)
+  
+  if (matchedCDSIndex < 0 ) {
+    if (expecting) {
+      logger.error(`no heroku CDS found for username ${salesforceUsername}`);
+    } else {
+      logger.debug(`no heroku CDS found for username ${salesforceUsername}`);
+    }
+    return [];
+  }
+  
+  logger.debug(`found matching cds ${salesforceUsername} === ${herokuCDSs[matchedCDSIndex].mainUser.username}`, );
+    
+  const matched = herokuCDSs
+    .splice(matchedCDSIndex, 1)
+
+  if (herokuCDSs.length > 0) {
+    // clear the queue and push the unmatched stuff back
+    await redis.del(herokuCDSExchange);
+    await redis.lpush(herokuCDSExchange, ...(herokuCDSs.map( cds => JSON.stringify(cds))));
+  }
+  
+
+  // return array of appnames
+  return matched[0].herokuResults.map( result => result.appName);
+
+}
+
+const getDeleteQueueSize = async () => {
+  return await redis.llen(orgDeleteExchange);
+}
+
+const getDeleteRequest = async () => {
+  const msg = await redis.lpop(orgDeleteExchange);
+  if (msg) {
+    const msgJSON = <DeleteRequest>JSON.parse(msg);
+    return msgJSON;
+  } else {
+    throw new Error('delete request queue is empty');
+  }
+}
 
 const getDeployRequest = async (log?: boolean) => {
   const msg = await redis.lpop(deployRequestExchange);
@@ -54,7 +118,7 @@ const getDeployRequest = async (log?: boolean) => {
 
 const putDeployRequest = async (depReq: deployRequest, log?: boolean) => {
   await redis.rpush(deployRequestExchange, JSON.stringify(depReq));
-  logger.debug('redis: added to deploy queue', putDeployRequest);
+  logger.debug('redis: added to deploy queue', depReq);
 };
 
 const putPoolRequest = async (poolReq: deployRequest, log?: boolean) => {
@@ -92,10 +156,10 @@ const getKeys = async () => {
 };
 
 // returns finished orgs from a pool
-const getPooledOrg = async (key: string, log?: boolean): Promise<poolOrg> => {
+const getPooledOrg = async (key: string, log?: boolean): Promise<clientDataStructure> => {
   const msg = await redis.lpop(key);
   if (msg) {
-    const poolOrg = <poolOrg>JSON.parse(msg);
+    const poolOrg = <clientDataStructure>JSON.parse(msg);
     if (log) {
       logger.debug(`pooledOrgFinder: found an org in ${key}`, poolOrg);
     }
@@ -105,7 +169,7 @@ const getPooledOrg = async (key: string, log?: boolean): Promise<poolOrg> => {
   }
 };
 
-const putPooledOrg = async (depReq: deployRequest, poolMessage: poolOrg) => {
+const putPooledOrg = async (depReq: deployRequest, poolMessage: clientDataStructure) => {
   const key = await utilities.getKey(depReq);
   await redis.rpush(key, JSON.stringify(poolMessage));
 };
@@ -122,7 +186,6 @@ const getPoolDeployCountByRepo = async (username: string, repo: string) => {
 
 export {
   redis,
-  deleteOrg,
   deployRequestExchange,
   getDeployRequest,
   cdsExchange,
@@ -134,5 +197,12 @@ export {
   putPooledOrg,
   getPoolRequest,
   getPoolDeployRequestQueueSize,
-  getPoolDeployCountByRepo
+  getPoolDeployCountByRepo,
+  orgDeleteExchange,
+  getDeleteQueueSize,
+  getDeleteRequest,
+  deleteOrg,
+  putHerokuCDS,
+  getAppNamesFromHerokuCDSs,
+  getHerokuCDSs
 };

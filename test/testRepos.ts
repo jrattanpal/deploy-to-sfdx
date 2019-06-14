@@ -3,7 +3,8 @@ export const testRepos = {
   platformWorkshops: [
     {
       username: 'mshanemc',
-      repo: 'df17IntegrationWorkshops'
+      repo: 'df17IntegrationWorkshops',
+      testPool: true
     }
     ,
     {
@@ -88,11 +89,11 @@ export const testRepos = {
     //   username: 'mshanemc',
     //   repo: 'rviot'
     // },
-    {
-      username: 'mshanemc',
-      repo: 'easy-spaces'
-    }
-    ,
+    // {
+    //   username: 'mshanemc',
+    //   repo: 'easy-spaces'
+    // }
+    // ,
     {
       username: 'mshanemc',
       repo: 'mobileWebinar'

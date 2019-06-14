@@ -25,7 +25,7 @@ const utilities = {
   getPoolConfig: async (): Promise<poolConfig[]> => {
     // TODO: fallback as a singleton?
     if (!process.env.POOLCONFIG_URL) {
-      return;
+      return [];
     }
     try {
       return JSON.parse(await request(process.env.POOLCONFIG_URL));
@@ -106,20 +106,11 @@ const utilities = {
   },
 
   getCloneCommand: (depReq: deployRequest) => {
-    let gitCloneCmd = `git clone https://github.com/${depReq.username}/${
-      depReq.repo
-    }.git ${depReq.deployId}`;
-    // special handling for branches
-    if (depReq.branch) {
-      // logger.debug('It is a branch!');
-      gitCloneCmd = `git clone -b ${
-        depReq.branch
+      return `git clone -b ${
+        depReq.branch || 'master'
         } --single-branch https://github.com/${depReq.username}/${
         depReq.repo
         }.git ${depReq.deployId}`;
-      // logger.debug(gitCloneCmd);
-    }
-    return gitCloneCmd;
   },
 
   getArg: (cmd: string, parameter: string): string => {
