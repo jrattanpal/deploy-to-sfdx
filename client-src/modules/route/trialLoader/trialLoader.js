@@ -1,14 +1,18 @@
-import { LightningElement, api } from 'lwc';
+import { LightningElement, api, wire } from 'lwc';
+import resultsPoll from '../../messages/resultsPoll/resultsPoll';
 
 export default class TrialLoader extends LightningElement {
-    
-    @api deployId;
+  @api deployId;
 
-    handleMessage(msg) {
-        const detail = msg.detail;
-        console.log(detail);
-        if (detail.mainUser && detail.mainUser.loginUrl) {
-            window.location.href = detail.mainUser.loginUrl;
-        }
+  @wire(resultsPoll, { deployId: '$deployId' })
+  wiredResults({ error, data }) {
+    if (error) {
+      console.error('error from ws subscribe wire', error);
+    } else if (data) {
+      console.log(data);
+      if (data.mainUser && data.mainUser.loginUrl) {
+        window.location.href = data.mainUser.loginUrl;
+      }
     }
-}   
+  }
+}
