@@ -1,37 +1,55 @@
-import * as puppeteer from 'puppeteer';
 import * as fs from 'fs-extra';
+import * as request from 'request-promise-native';
+import { sleep, retry } from '@lifeomic/attempt';
 
 import { getTestURL } from './../helpers/testingUtils';
-import { sfdxTimeout } from './../helpers/testingUtils';
+import { cdsDelete } from './../../src/lib/redisNormal';
+import { CDS } from './../../src/lib/CDS';
+import { processDeleteQueue } from './../../src/lib/skimmerSupport';
 
-const deployCheck = async (user, repo) => {
+const retryOptions = { maxAttempts: 3 };
+
+const deployCheck = async (user: string, repo: string) => {
     await fs.ensureDir('tmp');
 
     const baseUrl = getTestURL();
-	const url = `https://github.com/${user}/${repo}`;
-	const browser = await puppeteer.launch({headless:true});
-	const page = await browser.newPage();
-    
-    await page.goto(`${baseUrl}/launch?template=${url}`);
+    const url = `https://github.com/${user}/${repo}`;
 
-    const urlResult = await page.url(); 
-	expect(urlResult).toContain(`deploying/deployer/${user}-${repo}-`);
+    await retry(async context => {
+        // get the launch page and follow the path
 
-    await page.waitForSelector('a#loginURL[href*="https:"]', { timeout: sfdxTimeout});
+        const startResult = await request({
+            url: `${baseUrl}/launch?template=${url}`,
+            resolveWithFullResponse: true
+        });
 
-    const href = await page.evaluate(() => (<HTMLAnchorElement>document.querySelector('#loginUrl')).href);    
-	expect(typeof href).toBe('string');
+        // expect the deploying page redirect.  Get its url so we can check its results by id
+        const deployId = startResult.req.path.replace('/deploying/deployer/', '');
+        const resultsUrl = `${baseUrl}/results/${deployId}`;
 
-	// verify that loading icon eventually stops spinning
-    await page.waitForSelector('#loaderBlock', { timeout: sfdxTimeout, hidden: true});
-    await page.waitForSelector('#errorBlock', { timeout: sfdxTimeout, hidden: true});
+        let status = new CDS({
+            deployId
+        });
 
-    await Promise.all([
-        page.click('#deleteButton'),
-        page.waitForNavigation()
-    ]);
+        // fetch get the /results url until it's complete
+        while (!status.complete) {
+            status = await request({
+                uri: resultsUrl,
+                json: true
+            });
+            await sleep(1000);
+        }
 
-    browser.close();
+        await cdsDelete(deployId);
+        await processDeleteQueue();
+
+        expect(status.complete).toBe(true);
+        expect(status.errors).toHaveLength(0);
+        expect(status.mainUser.username).toBeTruthy();
+        expect(status.orgId).toBeTruthy();
+        expect(status.expirationDate).toBeTruthy();
+        return status;
+    }, retryOptions);
 };
 
 export { deployCheck };
