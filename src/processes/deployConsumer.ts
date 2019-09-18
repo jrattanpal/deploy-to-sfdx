@@ -11,7 +11,7 @@ const setTimeoutPromise = util.promisify(setTimeout);
   );
 
   await auth();
-  await setGitAuth();
+  await util.setGitAuth();
 
   let processedSomething = true;
 
