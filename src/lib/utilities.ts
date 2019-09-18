@@ -136,6 +136,13 @@ const utilities = {
             }
             return cmd.substring(paramValueStart, paramValueEnd + 1).trim();
         }
+    },
+    
+    setGitAuth: () void => {
+        if (process.env.GITHUB_AUTH_TOKEN) {
+            logger.debug('Setting up Github Token Auth');
+            exec(`git config --global url."https://token:${process.env.GITHUB_AUTH_TOKEN}@github.com/".insteadOf "https://github.com/"`);
+        }
     }
 };
 
