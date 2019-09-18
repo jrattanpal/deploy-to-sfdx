@@ -12,7 +12,8 @@ const setTimeoutPromise = util.promisify(setTimeout);
 
   await auth();
   logger.debug('Setting Git Environment Variables');
-  logger.debug(process.env.HEROKU_API_KEY);
+  logger.debug(process.env.GITHUB_AUTH_USER);
+  logger.debug(process.env.GITHUB_AUTH_TOKEN);
   let processedSomething = true;
 
   while (true) {
