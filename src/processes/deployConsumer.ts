@@ -11,9 +11,8 @@ const setTimeoutPromise = util.promisify(setTimeout);
   );
 
   await auth();
-  logger.debug('Setting Git Environment Variables');
-  logger.debug(process.env.GITHUB_AUTH_USER);
-  logger.debug(process.env.GITHUB_AUTH_TOKEN);
+  await setGitAuth();
+
   let processedSomething = true;
 
   while (true) {
