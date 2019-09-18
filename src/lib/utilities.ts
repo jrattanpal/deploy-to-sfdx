@@ -137,8 +137,6 @@ const utilities = {
             return cmd.substring(paramValueStart, paramValueEnd + 1).trim();
         }
     }
-    
-    
 };
 
 export = utilities;
