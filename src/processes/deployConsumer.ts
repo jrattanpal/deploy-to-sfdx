@@ -2,6 +2,7 @@ import * as logger from 'heroku-logger';
 import * as util from 'util';
 import { auth } from '../lib/hubAuth';
 import * as checkQueue from '../lib/deployQueueCheck';
+import { exec } from '../lib/execProm';
 
 const setTimeoutPromise = util.promisify(setTimeout);
 
@@ -11,6 +12,12 @@ const setTimeoutPromise = util.promisify(setTimeout);
   );
 
   await auth();
+	
+  if (process.env.GITHUB_AUTH_TOKEN) {
+  	logger.debug('Setting up Github Token Auth');
+        await exec(`git config --global url."https://token:${process.env.GITHUB_AUTH_TOKEN}@github.com/".insteadOf "https://github.com/"`);
+  }
+	
   let processedSomething = true;
 
   while (true) {
