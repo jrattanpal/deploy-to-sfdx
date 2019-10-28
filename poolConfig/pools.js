@@ -2,7 +2,7 @@
 	{
 		"user": "Vchalem",
 		"repo" : "TEFlowsLearning",
-		"quantity": 2,
+		"quantity": 4,
 		"lifeHours": 24
 	}
 ]
