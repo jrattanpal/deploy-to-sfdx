@@ -5,3 +5,6 @@ pooldeployer: node built/processes/poolConsumer.js
 oneoffbuilder: node built/processes/deployOneOff.js
 poolskimmer: node built/processes/skimmer.js
 dynoskimmer: node built/processes/dynoCleanup.js
+orgdeleter: node built/processes/orgDeleter.js
+deployidcleanup: node built/processes/deployIdCleanup.js
+herokucdscheck: node built/processes/herokuExpirationChecker.js

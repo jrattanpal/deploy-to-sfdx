@@ -1,7 +1,13 @@
 import {checkExpiration}  from '../../src/lib/skimmerSupport';
-import { poolOrg } from './../../src/lib/types';
+import { CDS } from './../../src/lib/CDS';
 import { redis } from './../../src/lib/redisNormal';
 import * as moment from 'moment';
+
+const fineOrg = new CDS({
+    deployId: `test-1234`,
+    complete: true,
+    completeTimestamp: new Date()
+});
 
 describe('tests the skimmer\'s expiration checks', () => {
     test('handles empty pool', async () => {
@@ -18,12 +24,8 @@ describe('tests the skimmer\'s expiration checks', () => {
     test('handles pool where all are ok', async () => {
         // create a pool of stuff
         await redis.del('mshanemc.finepool');
-        const orgs: poolOrg[] = new Array(5).fill({
-            githubUsername: 'mshanemc',
-            repo: 'finepool',
-            createdDate: new Date(),
-            openCommand: 'nope'
-        }, 0, 5);
+        
+        const orgs: CDS[] = new Array(5).fill(fineOrg, 0, 5);
         expect(orgs.length).toBe(5);
 
         const messages = orgs.map( org => JSON.stringify(org));
@@ -42,23 +44,19 @@ describe('tests the skimmer\'s expiration checks', () => {
     test('handles pool with expired orgs', async () => {
         // create a pool of stuff
         await redis.del('mshanemc.mixedpool');
-        let orgs: poolOrg[] = new Array(3).fill({
-            githubUsername: 'mshanemc',
-            repo: 'mixedpool',
-            createdDate: new Date(),
-            openCommand: 'nope'
-        });
+        let orgs: CDS[] = new Array(3).fill(fineOrg);
+
         expect(orgs.length).toBe(3);
-        const badOrg:poolOrg = {
-            githubUsername: 'mshanemc',
-            repo: 'mixedpool',
-            createdDate: moment().subtract(5, 'days').toDate(),
-            openCommand: 'nope',
-            displayResults: {
-                id: 'nope',
-                username: 'mshanemc'
+
+        const badOrg = new CDS({
+            completeTimestamp: moment().subtract(5, 'days').toDate(),
+            deployId: `test-1234`,
+            complete: true,
+            mainUser: {
+                username: 'testusername@salesforce.com',
+                loginUrl: 'x'
             }
-        };
+        });
 
         orgs.push(badOrg);
         orgs.push(badOrg);
@@ -73,7 +71,7 @@ describe('tests the skimmer\'s expiration checks', () => {
             lifeHours: 12,
             quantity: 4
         });
-        expect(result).toBe(`removing 2 expired orgs from pool mshanemc.mixedpool`);
+        expect(result).toBe(`queueing for deletion 2 expired orgs from pool mshanemc.mixedpool`);
 
     });
 });
