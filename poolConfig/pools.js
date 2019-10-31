@@ -2,7 +2,7 @@
 	{
 		"user": "CairlinnSolutions",
 		"repo" : "DF19AAHOW",
-		"quantity": 2,
+		"quantity": 10,
 		"lifeHours": 24
 	}
 ]
