@@ -23,8 +23,17 @@ import { CDS } from '../../lib/CDS';
 
 jest.setTimeout(7000);
 const deployMsgTest: DeployRequest = {
+<<<<<<< HEAD:src/server/__tests__/unitTests/redisNormal.test.ts
     repo: 'testRepo',
     username: 'mshanemc',
+=======
+    repos: [
+        {
+            repo: 'testRepo',
+            username: 'mshanemc'
+        }
+    ],
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/server/__tests__/unitTests/redisNormal.test.ts
     deployId: 'this-is-the-deploy-id',
     createdTimestamp: new Date()
 };
@@ -88,7 +97,7 @@ test('can get a message from the deploy queue', async () => {
 });
 
 test('blocks deletes with bad usernames', async () => {
-    await expect(deleteOrg('hack@you.bad;wget')).rejects.toEqual(Error('invalid username hack@you.bad;wget'));
+    await expect(deleteOrg('hack@you.bad;wget')).rejects.toEqual(Error(`invalid characters in 'hack@you.bad;wget'`));
 });
 
 test('allows deletes with good usernames', async () => {
@@ -102,29 +111,61 @@ test('properly counts poolDeploys', async () => {
     const mainRepo = 'redisTestRepo1';
 
     const pool: PoolConfig = {
+<<<<<<< HEAD:src/server/__tests__/unitTests/redisNormal.test.ts
         user: username,
         repo: mainRepo,
         quantity: 1,
         lifeHours: 12
+=======
+        quantity: 1,
+        lifeHours: 12,
+        repos: [
+            {
+                repo: mainRepo,
+                username: 'mshanemc'
+            }
+        ]
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/server/__tests__/unitTests/redisNormal.test.ts
     };
 
     const originalPoolSize = await getPoolDeployRequestQueueSize();
     const originalMainRepoSize = await getPoolDeployCountByRepo(pool);
 
+<<<<<<< HEAD:src/server/__tests__/unitTests/redisNormal.test.ts
     const req: DeployRequest = {
         username: username,
         repo: mainRepo,
+=======
+    // console.log(`original size is ${originalMainRepoSize}`);
+
+    const req: DeployRequest = {
+        repos: [
+            {
+                repo: mainRepo,
+                username
+            }
+        ],
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/server/__tests__/unitTests/redisNormal.test.ts
         deployId: encodeURIComponent(`${username}-${mainRepo}-${new Date().valueOf()}`),
-        whitelisted: true,
         pool: true,
         createdTimestamp: new Date()
     };
 
     const req2: DeployRequest = {
+<<<<<<< HEAD:src/server/__tests__/unitTests/redisNormal.test.ts
         username: username,
         repo: 'redisTestRepo2',
         deployId: encodeURIComponent(`${username}-else-${new Date().valueOf()}`),
         whitelisted: true,
+=======
+        repos: [
+            {
+                repo: 'redisTestRepo2',
+                username
+            }
+        ],
+        deployId: encodeURIComponent(`${username}-redisTestRepo2-${new Date().valueOf()}`),
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/server/__tests__/unitTests/redisNormal.test.ts
         pool: true,
         createdTimestamp: new Date()
     };

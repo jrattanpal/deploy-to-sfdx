@@ -1,5 +1,9 @@
 const processWrapper = {
+<<<<<<< HEAD
     PORT: process.env.PORT || 8443,
+=======
+    PORT: process.env.PORT ?? 8443,
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac
 
     // devhub authentication and plugin config
     LOCAL_ONLY_KEY_PATH: process.env.LOCAL_ONLY_KEY_PATH,
@@ -18,7 +22,11 @@ const processWrapper = {
     GITHUB_REPO_WHITELIST: process.env.GITHUB_REPO_WHITELIST,
 
     // org pool stuff
+<<<<<<< HEAD
     maxPoolBuilders: parseInt(process.env.maxPoolBuilders) || 50,
+=======
+    maxPoolBuilders: process.env.maxPoolBuilders ? parseInt(process.env.maxPoolBuilders) : 50,
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac
     POOLCONFIG_URL: process.env.POOLCONFIG_URL,
 
     // heroku integration stuff
@@ -26,8 +34,15 @@ const processWrapper = {
     REDIS_URL: process.env.REDIS_URL,
 
     HEROKU_API_KEY: process.env.HEROKU_API_KEY,
+<<<<<<< HEAD
     DYNO_TIME_LIMIT: parseInt(process.env.DYNO_TIME_LIMIT) || 30,
 
+=======
+    DYNO_TIME_LIMIT: process.env.DYNO_TIME_LIMIT ? parseInt(process.env.DYNO_TIME_LIMIT) : 30,
+
+    // single-repo deployer
+    SINGLE_REPO: process.env.SINGLE_REPO,
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac
     // google analytics
     UA_ID: process.env.UA_ID,
 
