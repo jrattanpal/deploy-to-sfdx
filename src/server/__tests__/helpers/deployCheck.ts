@@ -8,20 +8,12 @@ import { cdsDelete } from '../../lib/redisNormal';
 import { CDS } from '../../lib/CDS';
 import { processDeleteQueue } from '../../lib/skimmerSupport';
 import { TestRepo } from '../../lib/types';
-<<<<<<< HEAD:src/server/__tests__/helpers/deployCheck.ts
-=======
-import { multiTemplateURLBuilder } from '../../lib/multiTemplateURLBuilder';
->>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/server/__tests__/helpers/deployCheck.ts
 
 const retryOptions = { maxAttempts: 3 };
-const baseUrl = getTestURL();
 
 const deployCheck = async (testRepo: TestRepo) => {
     await fs.ensureDir('tmp');
-    return deployCheckMulti([testRepo]);
-};
 
-<<<<<<< HEAD:src/server/__tests__/helpers/deployCheck.ts
     const baseUrl = getTestURL();
     const url = testRepo.branch
         ? `https://github.com/${testRepo.username}/${testRepo.repo}/tree/${testRepo.branch}`
@@ -29,22 +21,9 @@ const deployCheck = async (testRepo: TestRepo) => {
 
     await retry(async () => {
         // get the launch page and follow the path
-=======
-const deployCheckMulti = async (testRepos: TestRepo[]) => {
-    await fs.ensureDir('tmp');
-    const urls = testRepos.map(testRepo =>
-        testRepo.branch
-            ? `https://github.com/${testRepo.username}/${testRepo.repo}/tree/${testRepo.branch}`
-            : `https://github.com/${testRepo.username}/${testRepo.repo}`
-    );
 
-    // console.debug(`URLS are`, urls);
->>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/server/__tests__/helpers/deployCheck.ts
-
-    await retry(async () => {
-        // get the launch page and follow the path
         const startResult = await request({
-            url: multiTemplateURLBuilder(urls, `${baseUrl}/launch`),
+            url: `${baseUrl}/launch?template=${url}`,
             resolveWithFullResponse: true
         });
 
@@ -76,4 +55,5 @@ const deployCheckMulti = async (testRepos: TestRepo[]) => {
         return status;
     }, retryOptions);
 };
-export { deployCheck, deployCheckMulti };
+
+export { deployCheck };

@@ -1,21 +1,11 @@
 import { LightningElement, api, wire } from 'lwc';
 import resultsPoll from '../../messages/resultsPoll/resultsPoll';
-import { CDS } from '../../../../server/lib/CDS';
 
 export default class TrialLoader extends LightningElement {
-  _deployId;
-
-  @api
-  get deployId() {
-    return this._deployId;
-  }
-
-  set deployId(value) {
-    this._deployId = value;
-  }
+  @api deployId;
 
   @wire(resultsPoll, { deployId: '$deployId' })
-  wiredResults({ error, data }: { error: any; data: CDS }) {
+  wiredResults({ error, data }) {
     if (error) {
       console.error('error from ws subscribe wire', error);
     } else if (data) {
