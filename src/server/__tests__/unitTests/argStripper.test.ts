@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 /* globals describe */
+=======
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac
 import { argStripper } from '../../lib/argStripper';
 
 describe('argStripperTest', () => {

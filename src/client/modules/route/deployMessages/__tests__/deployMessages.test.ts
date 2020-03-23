@@ -4,7 +4,11 @@ import resultsPoll from '../../../messages/resultsPoll/resultsPoll';
 
 import DeployMessages from 'route/deployMessages';
 
+<<<<<<< HEAD:src/client/modules/route/deployMessages/__tests__/deployMessages.test.js
 import * as fullExample from './data/fullExample.ts/index.js';
+=======
+import { fullExample } from './data/fullExample';
+>>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/client/modules/route/deployMessages/__tests__/deployMessages.test.ts
 
 describe('deploy-messages', () => {
   const fakeWire = registerTestWireAdapter(resultsPoll);
