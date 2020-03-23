@@ -21,8 +21,8 @@ class CDS {
     mainUser?: MainUser;
 
     additionalUsers: additionalUser[];
-    errors: ClientError[];
-    commandResults: ClientResult[];
+    errors: clientError[];
+    commandResults: clientResult[];
     herokuResults: HerokuResult[];
     currentCommand: string;
 
@@ -86,8 +86,8 @@ export interface CDSOptions {
     mainUser?: MainUser;
 
     additionalUsers?: additionalUser[];
-    errors?: ClientError[];
-    commandResults?: ClientResult[];
+    errors?: clientError[];
+    commandResults?: clientResult[];
     herokuResults?: HerokuResult[];
     currentCommand?: string;
 
@@ -104,22 +104,18 @@ interface MainUser {
     permalink?: string;
 }
 
-export interface ClientError {
+interface clientError {
     command: string;
     error: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     raw: any;
 }
 
-interface ClientResult {
+interface clientResult {
     command: string;
     summary?: commandSummary; // ex: instead of outputting all the apex class stuff, just summarize that apex was executed.
     shortForm?: string;
-<<<<<<< HEAD:src/server/lib/CDS.ts
     raw: string; // goes to logs
-=======
-    raw?: string; // goes to logs
->>>>>>> 5621934a52829ee61d59cfda1e9908e00218f2ac:src/server/lib/CDS.ts
     commandStartTimestamp?: Date;
     commandCompleteTimestamp?: Date;
 }
@@ -144,4 +140,4 @@ export enum commandSummary {
     DEPLOY = 'deploying via metadata api'
 }
 
-export { CDS, ClientResult };
+export { CDS };
