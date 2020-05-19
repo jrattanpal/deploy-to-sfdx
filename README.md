@@ -21,6 +21,7 @@ You have a dev hub, and an sfdx repo. You'd like to let people spin up scratch o
 
 ---
 
+
 ## Connected app setup
 
 Create a connected app for JWT auth, with certificates, per the SFDX setup guide.
