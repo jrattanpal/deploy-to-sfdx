@@ -1,4 +1,4 @@
-#NOTE: Source Repo for the TE Team ADK has moved from this branch to
+# NOTE: Source Repo for the TE Team ADK has moved from this branch to
 https://github.com/jhaydraude/deploy-to-sfdx/tree/teteamadk-staging
 
 # SFDX Deployer
