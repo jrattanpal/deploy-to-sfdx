@@ -1,3 +1,6 @@
+#NOTE: Source Repo for the TE Team ADK has moved from this branch to
+https://github.com/jhaydraude/deploy-to-sfdx/tree/teteamadk-staging
+
 # SFDX Deployer
 
 Front end: [LWC](lwc.dev)
